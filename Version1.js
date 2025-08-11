@@ -1,92 +1,144 @@
-const lodash = require('lodash');
-const moment = require('moment');
+const fs = require('fs');
+const path = require('path');
+const util = require('util');
+const express = require('express');
 const axios = require('axios');
+const lodash = require('lodash');
 
-class ShoppingCart {
-    constructor() {
-        this.items = [];
-        this.TAX_RATE = 0.08;
+
+let unusedVariable = "test";
+const TEMP_CONSTANT = 42;
+
+
+/*
+function oldImplementation() {
+    return "deprecated";
+}
+*/
+
+function doSomething(data, temp) {
+    if(data == null) {
+        throw new Error("Data is null");
     }
     
-    addItem(item) {
-        // 아이템 추가
-        if(item && item.price > 0)
-            this.items.push(item);
+    if(data.length === 0) {
+        console.log("ERROR: Empty data");
+        return null;
     }
     
-    calculateTotal() {
-        let subtotal = 0;
-        for(let i = 0; i < this.items.length; i++) {
-            subtotal += this.items[i].price * this.items[i].quantity;
-        }
-        
-        let tax = subtotal * 0.08;
-        let shipping = subtotal > 50 ? 0 : 10;
-        
-        return subtotal + tax + shipping;
-    }
-    
-    applyDiscount(code) {
-        if(code === "SAVE10") {
-            return this.calculateTotal() * 0.9;
-        } else if(code == "SAVE20") {
-            return this.calculateTotal() * 0.8;
-        }
-        else {
-            return this.calculateTotal();
-        }
-    }
+    return data.toUpperCase();
 }
 
-// 테스트 케이스들
-function testShoppingCart() {
-    const cart = new ShoppingCart();
+const utils = {
+    process: function(input) {
+        if(input === undefined) {
+            console.error("Input is undefined");
+            return false;
+        }
+        
+        try {
+            const result = doSomething(input);
+            return result;
+        } catch(error) {
+            throw "Processing failed: " + error.message;
+        }
+    },
     
-    // 테스트 1: 아이템 추가
-    cart.addItem({name: "Book", price: 20, quantity: 2});
-    console.log("Test 1 passed");
-    
-    // 테스트 2: 총합 계산
-    let total = cart.calculateTotal();
-    console.log(`Test 2: Total is ${total}`);
-    
-    // Test 3: discount application
-    let discounted = cart.applyDiscount("SAVE10");
-    console.log("Test 3: Discount applied");
-}
+    validate: (item) => {
+        if(item == "") {
+            return false;
+        }
+        return true;
+    }
+};
 
-async function fetchProductData(productId) {
+async function fetchData() {
     try {
-        const response = await axios.get(`https://api.products.com/${productId}`);
-        return response.data;
-    } catch (error) {
-        console.log("Failed to fetch product");
+        const response = await fetch("https://api.example.com/data");
+        return response.json();
+    } catch(err) {
+        console.log("Network error");
         return null;
     }
 }
 
-function main() {
+function helperFunction() {
+    // 사용되지 않는 함수
+    return true;
+}
+
+class TestSuite {
+    test_utils_process() {
+        const testData = "hello world";
+        const result = utils.process(testData);
+        console.log("Test 1 passed");
+    }
+    
+    testValidation() {
+        const isValid = utils.validate("test");
+        if(isValid === true) {
+            console.log("✓ Validation test passed");
+        }
+    }
+    
+    test_error_handling() {
+        try {
+            utils.process(null);
+            console.log("Test should have failed");
+        } catch(e) {
+            console.log("Error test passed");
+        }
+    }
+    
+    runTests() {
+        this.test_utils_process();
+        this.testValidation();
+        this.test_error_handling();
+    }
+}
+
+function getUserInput() {
     const readline = require('readline');
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout
     });
     
-    rl.question('Enter product ID: ', async (productId) => {
-        const productData = await fetchProductData(productId);
-        
-        if(productData) {
-            const cart = new ShoppingCart();
-            cart.addItem(productData);
-            console.log(`Total: ${cart.calculateTotal()}`);
+    rl.question('Enter data: ', (input) => {
+        try {
+            const processed = utils.process(input);
+            console.log(`Result: ${processed}`);
+        } catch(error) {
+            console.error("An error occurred");
+        } finally {
+            rl.close();
         }
-        
+    });
+}
+
+function main() {
+    const testSuite = new TestSuite();
+    
+    console.log("Choose option:");
+    console.log("1. Run tests");
+    console.log("2. Process input");
+    
+    const readline = require('readline');
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+    
+    rl.question('Enter choice (1 or 2): ', (choice) => {
+        if(choice == "1") {
+            testSuite.runTests();
+        } else if(choice === "2") {
+            rl.close();
+            getUserInput();
+            return;
+        }
         rl.close();
     });
 }
 
-if(process.argv[2] === 'test') {
-    testShoppingCart();
-} else {
-    main();
-}
+main();
